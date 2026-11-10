@@ -17,7 +17,30 @@ jobs:
           ref: refs/pull/552/head
           submodules: recursive
           fetch-depth: 1
+          
+      - name: Install Vulkan shader tools
+        shell: pwsh
+        run: |
+          choco install vulkan-sdk -y --no-progress
 
+          $sdk = Get-ChildItem "C:\VulkanSDK" -Directory |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+
+          if (-not $sdk) {
+            throw "Vulkan SDK installation not found"
+          }
+
+          $bin = Join-Path $sdk.FullName "Bin"
+          $validator = Join-Path $bin "glslangValidator.exe"
+
+          if (-not (Test-Path $validator)) {
+            throw "glslangValidator.exe not found"
+          }
+
+          $bin | Out-File -FilePath $env:GITHUB_PATH -Append
+          & $validator --version
+          
       - name: Configure CMake
         shell: pwsh
         run: |
