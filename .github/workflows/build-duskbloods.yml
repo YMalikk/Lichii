@@ -6,7 +6,7 @@ on:
 
 jobs:
   windows-build:
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 180
 
     steps:
@@ -41,7 +41,7 @@ jobs:
           $bin | Out-File -FilePath $env:GITHUB_PATH -Append
           & $validator --version
           
-      - name: Configure CMake
+       - name: Configure CMake
         shell: pwsh
         run: |
           cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
