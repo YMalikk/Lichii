@@ -1,0 +1,57 @@
+
+name: Build Lichii Duskbloods PR552
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows-build:
+    runs-on: windows-2022
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout PR 552
+        uses: actions/checkout@v4
+        with:
+          repository: zortos293/Lichii
+          ref: refs/pull/552/head
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DYUZU_TESTS=OFF
+
+      - name: Build Release
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --parallel 4
+
+      - name: Package binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifact | Out-Null
+          Get-ChildItem build/bin -Recurse -File |
+            Where-Object {
+              $_.Extension -in @(".exe", ".dll") -or
+              $_.FullName -match "plugins|translations"
+            } |
+            ForEach-Object {
+              $relative = $_.FullName.Substring(
+                (Resolve-Path build/bin).Path.Length + 1
+              )
+              $dest = Join-Path artifact $relative
+              New-Item -ItemType Directory -Force `
+                (Split-Path $dest) | Out-Null
+              Copy-Item $_.FullName $dest
+            }
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lichii-Duskbloods-PR552-Windows
+          path: artifact/
+          if-no-files-found: error
